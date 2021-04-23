@@ -64,6 +64,15 @@ exports.handler = async function (args) {
 
       break;
     case 'db:drop':
+      if(config.dialect === 'postgres' && config.dialectOptions && config.dialectOptions.forceDrop) {
+        await sequelize.query(`SELECT pg_terminate_backend(pg_stat_activity.pid)
+          FROM pg_stat_activity
+          WHERE pg_stat_activity.datname = '${config.database}'
+          AND pid <> pg_backend_pid()`, {
+          type: sequelize.QueryTypes.RAW
+        }).catch((e) => helpers.view.error(e));
+      }
+
       await sequelize
         .query(
           `DROP DATABASE IF EXISTS ${queryGenerator.quoteIdentifier(
